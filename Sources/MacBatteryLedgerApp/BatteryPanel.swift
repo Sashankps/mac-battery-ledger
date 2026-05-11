@@ -19,19 +19,21 @@ struct BatteryPanel: View {
         VStack(spacing: 0) {
             header
 
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 14) {
-                    if let snapshot {
-                        HeroBatteryCard(snapshot: snapshot)
-                        MetricGrid(snapshot: snapshot)
-                    } else {
-                        UnavailableCard()
-                    }
-
-                    HistorySection(sessions: visibleSessions)
+            VStack(spacing: 14) {
+                if let snapshot {
+                    HeroBatteryCard(snapshot: snapshot)
+                    MetricGrid(snapshot: snapshot)
+                } else {
+                    UnavailableCard()
                 }
-                .padding(.horizontal, 18)
-                .padding(.bottom, 18)
+            }
+            .padding(.horizontal, 18)
+            .padding(.bottom, 14)
+
+            ScrollView(showsIndicators: false) {
+                HistorySection(sessions: visibleSessions)
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 18)
             }
 
             footer
