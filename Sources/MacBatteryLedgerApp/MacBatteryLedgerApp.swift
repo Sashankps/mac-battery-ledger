@@ -12,7 +12,7 @@ struct MacBatteryLedgerApp: App {
     var body: some Scene {
         MenuBarExtra {
             BatteryPanel(monitor: monitor)
-                .frame(width: 390, height: 650)
+                .frame(width: 390, height: 600)
                 .onAppear {
                     monitor.refresh()
                 }
