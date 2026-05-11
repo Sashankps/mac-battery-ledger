@@ -159,7 +159,7 @@ private struct HeroBatteryCard: View {
 
     private var fillColor: Color {
         if snapshot.percentage <= 20 {
-            return Color(red: 0.88, green: 0.26, blue: 0.23)
+            return PremiumStyle.red
         }
         if snapshot.percentage <= 45 {
             return PremiumStyle.amber
@@ -293,7 +293,7 @@ private struct SessionRow: View {
             }
         }
         .padding(10)
-        .background(Color.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(PremiumStyle.softPanel, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(PremiumStyle.line, lineWidth: 1)
@@ -301,7 +301,7 @@ private struct SessionRow: View {
     }
 
     private var tint: Color {
-        session.kind == .charge ? PremiumStyle.green : Color(red: 0.37, green: 0.42, blue: 0.50)
+        session.kind == .charge ? PremiumStyle.green : PremiumStyle.graphite
     }
 }
 
