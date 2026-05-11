@@ -65,6 +65,7 @@ struct BatteryPanel: View {
             .buttonStyle(.plain)
             .contentShape(Rectangle())
             .help("Refresh")
+            .pointerCursor()
 
             Button {
                 NSApplication.shared.terminate(nil)
@@ -76,6 +77,7 @@ struct BatteryPanel: View {
             .buttonStyle(.plain)
             .contentShape(Rectangle())
                 .help("Quit mac-battery-ledger")
+                .pointerCursor()
         }
         .padding(.horizontal, 18)
         .padding(.top, 18)
@@ -175,15 +177,16 @@ private struct MetricGrid: View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
             MetricTile(title: "Cycles", value: snapshot.cycleCount.map(String.init) ?? "—", footnote: "count")
             MetricTile(title: "Health", value: snapshot.healthPercent.map { "\($0)%" } ?? "—", footnote: snapshot.healthLabel)
-            MetricTile(title: "Capacity", value: capacityText, footnote: "of design")
+            MetricTile(title: "Capacity", value: capacityText, footnote: "full charge")
         }
     }
 
     private var capacityText: String {
-        guard let maxCapacity = snapshot.maxCapacity, let designCapacity = snapshot.designCapacity, designCapacity > 0 else {
+        guard let maxCapacity = snapshot.maxCapacity else {
             return "—"
         }
-        return "\(Int((Double(maxCapacity) / Double(designCapacity) * 100).rounded()))%"
+        let ampHours = Double(maxCapacity) / 1000.0
+        return String(format: "%.1f Ah", ampHours)
     }
 }
 
