@@ -7,6 +7,7 @@ struct BatterySnapshot: Equatable {
     let isFullyCharged: Bool
     let timeRemainingMinutes: Int?
     let cycleCount: Int?
+    let maximumCapacityPercent: Int?
     let designCapacity: Int?
     let maxCapacity: Int?
     let currentCapacity: Int?
@@ -14,6 +15,9 @@ struct BatterySnapshot: Equatable {
     let updatedAt: Date
 
     var healthPercent: Int? {
+        if let maximumCapacityPercent {
+            return maximumCapacityPercent
+        }
         guard let designCapacity, let maxCapacity, designCapacity > 0 else { return nil }
         return Int((Double(maxCapacity) / Double(designCapacity) * 100).rounded())
     }
