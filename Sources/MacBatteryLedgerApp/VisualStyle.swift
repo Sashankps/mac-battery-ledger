@@ -40,4 +40,14 @@ extension View {
     func glassCard() -> some View {
         modifier(GlassCard())
     }
+
+    func pointerCursor() -> some View {
+        self.onHover { isHovered in
+            if isHovered {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+    }
 }
