@@ -39,15 +39,12 @@ struct BatteryPanel: View {
             footer
         }
         .background(PremiumStyle.panel)
-        .task {
-            monitor.start()
-        }
     }
 
     private var header: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("mac-battery-ledger")
+                Text("Battery Ledger")
                     .font(.system(size: 18, weight: .semibold, design: .rounded))
                     .foregroundStyle(PremiumStyle.ink)
                 Text(snapshot?.powerStateLabel ?? "Reading Battery")
@@ -78,7 +75,7 @@ struct BatteryPanel: View {
             }
             .buttonStyle(.plain)
             .contentShape(Rectangle())
-                .help("Quit mac-battery-ledger")
+                .help("Quit Battery Ledger")
                 .pointerCursor()
         }
         .padding(.horizontal, 18)
