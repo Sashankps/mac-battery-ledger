@@ -4,6 +4,8 @@ import Observation
 @Observable
 final class BatteryMonitor {
     private static let transientStateLimit: TimeInterval = 30
+    private static let healthSampleInterval: TimeInterval = 60 * 60
+    private static let healthSampleLimit = 720
 
     private let reader: BatteryReading
     private let store: BatteryHistoryStore
@@ -39,6 +41,7 @@ final class BatteryMonitor {
     }
 
     private func fold(_ snapshot: BatterySnapshot) {
+        recordHealthSample(snapshot)
         let nextKind: BatterySessionKind = snapshot.isPluggedIn ? .charge : .discharge
 
         guard var active = history.activeSession else {
@@ -116,6 +119,25 @@ final class BatteryMonitor {
         history.sessions.insert(session, at: 0)
         if history.sessions.count > 80 {
             history.sessions.removeLast(history.sessions.count - 80)
+        }
+    }
+
+    private func recordHealthSample(_ snapshot: BatterySnapshot) {
+        guard snapshot.healthPercent != nil || snapshot.cycleCount != nil || snapshot.maxCapacity != nil else { return }
+
+        let sample = BatteryHealthSample(from: snapshot)
+        if let latest = history.healthSamples.first {
+            let valuesChanged = latest.cycleCount != sample.cycleCount
+                || latest.healthPercent != sample.healthPercent
+                || latest.maxCapacity != sample.maxCapacity
+                || latest.designCapacity != sample.designCapacity
+            let isStale = snapshot.updatedAt.timeIntervalSince(latest.date) >= Self.healthSampleInterval
+            guard valuesChanged || isStale else { return }
+        }
+
+        history.healthSamples.insert(sample, at: 0)
+        if history.healthSamples.count > Self.healthSampleLimit {
+            history.healthSamples.removeLast(history.healthSamples.count - Self.healthSampleLimit)
         }
     }
 }
