@@ -34,6 +34,7 @@ final class BatteryReader: BatteryReading {
             isFullyCharged: isFullyCharged,
             timeRemainingMinutes: safeTimeRemaining,
             cycleCount: intValue(registry["CycleCount"]),
+            maximumCapacityPercent: readSystemMaximumCapacityPercent(),
             designCapacity: intValue(registry["DesignCapacity"]),
             maxCapacity: intValue(registry["AppleRawMaxCapacity"])
                 ?? intValue(registry["NominalChargeCapacity"]),
@@ -68,6 +69,37 @@ final class BatteryReader: BatteryReading {
         }
 
         return dictionary
+    }
+
+    private func readSystemMaximumCapacityPercent() -> Int? {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/system_profiler")
+        process.arguments = ["SPPowerDataType"]
+
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = Pipe()
+
+        do {
+            try process.run()
+        } catch {
+            return nil
+        }
+
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else { return nil }
+
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        guard let output = String(data: data, encoding: .utf8) else { return nil }
+
+        for line in output.split(separator: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard trimmed.hasPrefix("Maximum Capacity:") else { continue }
+            let digits = trimmed.compactMap { $0.isNumber ? String($0) : nil }.joined()
+            return Int(digits)
+        }
+
+        return nil
     }
 
     private func intValue(_ value: Any?) -> Int? {
