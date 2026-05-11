@@ -1,14 +1,15 @@
 import SwiftUI
 
 enum PremiumStyle {
-    static let ink = Color(red: 0.08, green: 0.09, blue: 0.10)
-    static let secondaryInk = Color(red: 0.43, green: 0.45, blue: 0.48)
-    static let line = Color.black.opacity(0.08)
+    static let ink = Color.primary
+    static let secondaryInk = Color.secondary
+    static let line = Color.primary.opacity(0.1)
     static let panel = Color(nsColor: .windowBackgroundColor)
-    static let softPanel = Color(red: 0.965, green: 0.967, blue: 0.972)
-    static let green = Color(red: 0.18, green: 0.66, blue: 0.42)
-    static let amber = Color(red: 0.86, green: 0.57, blue: 0.16)
-    static let graphite = Color(red: 0.18, green: 0.20, blue: 0.22)
+    static let softPanel = Color(nsColor: .controlBackgroundColor)
+    static let green = Color(nsColor: .systemGreen)
+    static let amber = Color(nsColor: .systemOrange)
+    static let red = Color(nsColor: .systemRed)
+    static let graphite = Color(nsColor: .systemGray)
 
     static var metricFont: Font {
         .system(size: 28, weight: .semibold, design: .rounded)
