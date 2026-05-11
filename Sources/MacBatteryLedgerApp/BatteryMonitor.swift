@@ -3,6 +3,8 @@ import Observation
 
 @Observable
 final class BatteryMonitor {
+    private static let transientStateLimit: TimeInterval = 30
+
     private let reader: BatteryReading
     private let store: BatteryHistoryStore
     private var timer: Timer?
@@ -21,8 +23,9 @@ final class BatteryMonitor {
     }
 
     func start() {
-        refresh()
+        guard timer == nil else { return }
         timer?.invalidate()
+        refresh()
         timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             self?.refresh()
         }
@@ -45,9 +48,13 @@ final class BatteryMonitor {
         }
 
         if active.kind != nextKind {
-            active.endDate = snapshot.updatedAt
-            active.endPercentage = snapshot.percentage
-            active.endCycleCount = snapshot.cycleCount
+            active = endedSession(active, at: snapshot)
+            if let restored = restoreSessionInterrupted(by: active, matching: nextKind, at: snapshot) {
+                history.activeSession = restored
+                store.save(history)
+                return
+            }
+
             appendCompleted(active)
             history.activeSession = makeSession(kind: nextKind, from: snapshot)
             store.save(history)
@@ -71,6 +78,37 @@ final class BatteryMonitor {
             startCycleCount: snapshot.cycleCount,
             endCycleCount: snapshot.cycleCount
         )
+    }
+
+    private func endedSession(_ session: BatterySession, at snapshot: BatterySnapshot) -> BatterySession {
+        var session = session
+        session.endDate = snapshot.updatedAt
+        session.endPercentage = snapshot.percentage
+        session.endCycleCount = snapshot.cycleCount
+        return session
+    }
+
+    private func restoreSessionInterrupted(
+        by interruption: BatterySession,
+        matching kind: BatterySessionKind,
+        at snapshot: BatterySnapshot
+    ) -> BatterySession? {
+        guard
+            interruption.duration < Self.transientStateLimit,
+            interruption.percentageDelta == 0,
+            let previous = history.sessions.first,
+            previous.kind == kind,
+            previous.endDate == interruption.startDate
+        else {
+            return nil
+        }
+
+        history.sessions.removeFirst()
+        var restored = previous
+        restored.endDate = nil
+        restored.endPercentage = snapshot.percentage
+        restored.endCycleCount = snapshot.cycleCount
+        return restored
     }
 
     private func appendCompleted(_ session: BatterySession) {
