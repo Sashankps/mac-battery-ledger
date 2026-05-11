@@ -19,33 +19,32 @@ struct BatteryPanel: View {
         VStack(spacing: 0) {
             header
 
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 14) {
-                    if let snapshot {
-                        HeroBatteryCard(snapshot: snapshot)
-                        MetricGrid(snapshot: snapshot)
-                    } else {
-                        UnavailableCard()
-                    }
-
-                    HistorySection(sessions: visibleSessions)
+            VStack(spacing: 14) {
+                if let snapshot {
+                    HeroBatteryCard(snapshot: snapshot)
+                    MetricGrid(snapshot: snapshot)
+                } else {
+                    UnavailableCard()
                 }
-                .padding(.horizontal, 18)
-                .padding(.bottom, 18)
+            }
+            .padding(.horizontal, 18)
+            .padding(.bottom, 14)
+
+            ScrollView(showsIndicators: false) {
+                HistorySection(sessions: visibleSessions)
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 18)
             }
 
             footer
         }
         .background(PremiumStyle.panel)
-        .task {
-            monitor.start()
-        }
     }
 
     private var header: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("mac-battery-ledger")
+                Text("Battery Ledger")
                     .font(.system(size: 18, weight: .semibold, design: .rounded))
                     .foregroundStyle(PremiumStyle.ink)
                 Text(snapshot?.powerStateLabel ?? "Reading Battery")
@@ -76,7 +75,7 @@ struct BatteryPanel: View {
             }
             .buttonStyle(.plain)
             .contentShape(Rectangle())
-                .help("Quit mac-battery-ledger")
+                .help("Quit Battery Ledger")
                 .pointerCursor()
         }
         .padding(.horizontal, 18)

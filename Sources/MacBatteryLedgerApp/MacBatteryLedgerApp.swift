@@ -12,17 +12,14 @@ struct MacBatteryLedgerApp: App {
     var body: some Scene {
         MenuBarExtra {
             BatteryPanel(monitor: monitor)
-                .frame(width: 390, height: 650)
-                .onAppear {
-                    monitor.refresh()
-                }
+                .frame(width: 390, height: 600)
         } label: {
             MenuBarBatteryLabel(snapshot: monitor.snapshot)
+                .task {
+                    monitor.start()
+                }
         }
         .menuBarExtraStyle(.window)
-        .onChange(of: NSApplication.shared.isActive) {
-            monitor.refresh()
-        }
 
         Settings {
             EmptyView()
