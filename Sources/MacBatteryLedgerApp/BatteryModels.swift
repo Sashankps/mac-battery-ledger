@@ -116,6 +116,48 @@ struct BatterySession: Identifiable, Codable, Equatable {
 struct BatteryHistory: Codable, Equatable {
     var activeSession: BatterySession?
     var sessions: [BatterySession]
+    var healthSamples: [BatteryHealthSample]
 
-    static let empty = BatteryHistory(activeSession: nil, sessions: [])
+    static let empty = BatteryHistory(activeSession: nil, sessions: [], healthSamples: [])
+
+    private enum CodingKeys: String, CodingKey {
+        case activeSession
+        case sessions
+        case healthSamples
+    }
+
+    init(activeSession: BatterySession?, sessions: [BatterySession], healthSamples: [BatteryHealthSample]) {
+        self.activeSession = activeSession
+        self.sessions = sessions
+        self.healthSamples = healthSamples
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        activeSession = try container.decodeIfPresent(BatterySession.self, forKey: .activeSession)
+        sessions = try container.decodeIfPresent([BatterySession].self, forKey: .sessions) ?? []
+        healthSamples = try container.decodeIfPresent([BatteryHealthSample].self, forKey: .healthSamples) ?? []
+    }
+}
+
+struct BatteryHealthSample: Identifiable, Codable, Equatable {
+    let id: UUID
+    let date: Date
+    let cycleCount: Int?
+    let healthPercent: Int?
+    let designCapacity: Int?
+    let maxCapacity: Int?
+    let currentCapacity: Int?
+    let temperatureCelsius: Double?
+
+    init(from snapshot: BatterySnapshot) {
+        id = UUID()
+        date = snapshot.updatedAt
+        cycleCount = snapshot.cycleCount
+        healthPercent = snapshot.healthPercent
+        designCapacity = snapshot.designCapacity
+        maxCapacity = snapshot.maxCapacity
+        currentCapacity = snapshot.currentCapacity
+        temperatureCelsius = snapshot.temperatureCelsius
+    }
 }
