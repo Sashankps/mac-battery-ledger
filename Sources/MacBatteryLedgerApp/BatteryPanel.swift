@@ -67,9 +67,13 @@ struct BatteryPanel: View {
                 Button {
                     destination = nil
                 } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 13, weight: .semibold))
-                        .frame(width: 28, height: 28)
+                    ZStack {
+                        Color.clear
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .frame(width: 32, height: 32)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .contentShape(Rectangle())
