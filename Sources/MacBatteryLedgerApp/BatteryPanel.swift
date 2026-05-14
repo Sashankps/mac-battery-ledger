@@ -358,7 +358,15 @@ private struct CycleDetailView: View {
                     value: insights.count.map(String.init) ?? "--",
                     label: insights.pressureLabel,
                     tint: insights.tint,
-                    progress: insights.limitProgress
+                    progress: insights.limitProgress,
+                    info: IndicatorInfo(
+                        title: "Cycle Pressure",
+                        details: [
+                            "Low: under 65% of the 1,000-cycle planning limit.",
+                            "Watch: 65% to 84% of the planning limit.",
+                            "High: 85% or more of the planning limit."
+                        ]
+                    )
                 )
 
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 2), spacing: 10) {
@@ -385,20 +393,46 @@ private struct CycleDetailView: View {
                     )
                 }
 
-                InsightPanel(title: "Control Signals") {
+                InsightPanel(
+                    title: "Control Signals",
+                    info: IndicatorInfo(
+                        title: "Control Signals",
+                        details: [
+                            "Wear velocity uses the stored cycle readings to estimate cycles per 30 days.",
+                            "Drain profile counts discharge sessions with a 35% or larger drop."
+                        ]
+                    )
+                ) {
                     InsightRow(
                         systemImage: "chart.xyaxis.line",
                         title: "Wear velocity",
                         value: insights.velocityLabel,
                         subtitle: insights.velocityDetail,
-                        tint: insights.tint
+                        tint: insights.tint,
+                        info: IndicatorInfo(
+                            title: "Wear Velocity",
+                            details: [
+                                "Learning: not enough cycle history yet.",
+                                "Low: under 3 cycles per 30 days.",
+                                "Normal: 3 to 7.9 cycles per 30 days.",
+                                "Elevated: 8 or more cycles per 30 days."
+                            ]
+                        )
                     )
                     InsightRow(
                         systemImage: "moon.zzz.fill",
                         title: "Drain profile",
                         value: insights.drainProfileLabel,
                         subtitle: insights.drainProfileDetail,
-                        tint: PremiumStyle.amber
+                        tint: PremiumStyle.amber,
+                        info: IndicatorInfo(
+                            title: "Drain Profile",
+                            details: [
+                                "Shallow: no 35%+ discharge sessions recorded.",
+                                "Mixed: 1 to 3 deep discharge sessions recorded.",
+                                "Deep: 4 or more deep discharge sessions recorded."
+                            ]
+                        )
                     )
                 }
             }
@@ -429,17 +463,47 @@ private struct HealthDetailView: View {
                     value: insights.healthText,
                     label: insights.healthLabel,
                     tint: insights.tint,
-                    progress: insights.healthProgress
+                    progress: insights.healthProgress,
+                    info: IndicatorInfo(
+                        title: "Capacity Health",
+                        details: [
+                            "Excellent: 90% or more of design capacity.",
+                            "Good: 80% to 89% of design capacity.",
+                            "Fair: 70% to 79% of design capacity.",
+                            "Service Soon: below 70% of design capacity."
+                        ]
+                    )
                 )
 
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 2), spacing: 10) {
                     DetailStatTile(title: "Full Charge", value: insights.maxCapacityText, footnote: "usable capacity")
                     DetailStatTile(title: "Design", value: insights.designCapacityText, footnote: "factory capacity")
                     DetailStatTile(title: "Reserve Lost", value: insights.capacityLostText, footnote: "design gap")
-                    DetailStatTile(title: "Temperature", value: insights.temperatureText, footnote: insights.temperatureFootnote)
+                    DetailStatTile(
+                        title: "Temperature",
+                        value: insights.temperatureText,
+                        footnote: insights.temperatureFootnote,
+                        info: IndicatorInfo(
+                            title: "Temperature",
+                            details: [
+                                "Cool: under 35C.",
+                                "Warm: 35C to 39C.",
+                                "Hot: 40C or higher."
+                            ]
+                        )
+                    )
                 }
 
-                InsightPanel(title: "Health Trend") {
+                InsightPanel(
+                    title: "Health Trend",
+                    info: IndicatorInfo(
+                        title: "Health Trend",
+                        details: [
+                            "Tracked baseline is the oldest saved health reading still in local history.",
+                            "Health drift compares the current health reading against that baseline."
+                        ]
+                    )
+                ) {
                     InsightRow(
                         systemImage: "point.3.connected.trianglepath.dotted",
                         title: "Tracked baseline",
@@ -452,12 +516,39 @@ private struct HealthDetailView: View {
                         title: "Health drift",
                         value: insights.healthDriftText,
                         subtitle: insights.healthDriftDetail,
-                        tint: insights.driftTint
+                        tint: insights.driftTint,
+                        info: IndicatorInfo(
+                            title: "Health Drift",
+                            details: [
+                                "Learning: no saved baseline reading yet.",
+                                "Positive or zero: current health is at or above the baseline.",
+                                "Negative: current health is below the baseline."
+                            ]
+                        )
                     )
                 }
 
-                InsightPanel(title: "Capacity Control") {
-                    CapacityBar(title: "Current charge against full capacity", percent: insights.currentFillPercent)
+                InsightPanel(
+                    title: "Capacity Control",
+                    info: IndicatorInfo(
+                        title: "Capacity Control",
+                        details: [
+                            "The bar compares current charge against the battery's current full-charge capacity.",
+                            "Capacity headroom is the remaining capacity before the current full-charge ceiling."
+                        ]
+                    )
+                ) {
+                    CapacityBar(
+                        title: "Current charge against full capacity",
+                        percent: insights.currentFillPercent,
+                        info: IndicatorInfo(
+                            title: "Current Fill",
+                            details: [
+                                "0% means empty against today's full-charge capacity.",
+                                "100% means the battery is at its current full-charge capacity."
+                            ]
+                        )
+                    )
                     InsightRow(
                         systemImage: "battery.100percent",
                         title: "Capacity headroom",
@@ -471,6 +562,54 @@ private struct HealthDetailView: View {
     }
 }
 
+private struct IndicatorInfo {
+    let title: String
+    let details: [String]
+}
+
+private struct IndicatorInfoButton: View {
+    let info: IndicatorInfo
+    @State private var isPresented = false
+
+    var body: some View {
+        Button {
+            isPresented.toggle()
+        } label: {
+            Image(systemName: "info.circle")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(PremiumStyle.secondaryInk)
+                .frame(width: 18, height: 18)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(info.title)
+        .pointerCursor()
+        .popover(isPresented: $isPresented, arrowEdge: .trailing) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(info.title)
+                    .font(PremiumStyle.titleFont)
+                    .foregroundStyle(PremiumStyle.ink)
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(info.details, id: \.self) { detail in
+                        HStack(alignment: .top, spacing: 6) {
+                            Circle()
+                                .fill(PremiumStyle.secondaryInk.opacity(0.55))
+                                .frame(width: 4, height: 4)
+                                .padding(.top, 6)
+                            Text(detail)
+                                .font(PremiumStyle.smallFont)
+                                .foregroundStyle(PremiumStyle.secondaryInk)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+            .padding(12)
+            .frame(width: 260, alignment: .leading)
+        }
+    }
+}
+
 private struct DetailHeroCard: View {
     let systemImage: String
     let title: String
@@ -478,6 +617,17 @@ private struct DetailHeroCard: View {
     let label: String
     let tint: Color
     let progress: Double
+    let info: IndicatorInfo?
+
+    init(systemImage: String, title: String, value: String, label: String, tint: Color, progress: Double, info: IndicatorInfo? = nil) {
+        self.systemImage = systemImage
+        self.title = title
+        self.value = value
+        self.label = label
+        self.tint = tint
+        self.progress = progress
+        self.info = info
+    }
 
     var body: some View {
         VStack(spacing: 13) {
@@ -492,9 +642,14 @@ private struct DetailHeroCard: View {
                 .frame(width: 42, height: 42)
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(title)
-                        .font(PremiumStyle.smallFont)
-                        .foregroundStyle(PremiumStyle.secondaryInk)
+                    HStack(spacing: 5) {
+                        Text(title)
+                            .font(PremiumStyle.smallFont)
+                            .foregroundStyle(PremiumStyle.secondaryInk)
+                        if let info {
+                            IndicatorInfoButton(info: info)
+                        }
+                    }
                     Text(value)
                         .font(.system(size: 34, weight: .semibold, design: .rounded))
                         .monospacedDigit()
@@ -523,12 +678,25 @@ private struct DetailStatTile: View {
     let title: String
     let value: String
     let footnote: String
+    let info: IndicatorInfo?
+
+    init(title: String, value: String, footnote: String, info: IndicatorInfo? = nil) {
+        self.title = title
+        self.value = value
+        self.footnote = footnote
+        self.info = info
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text(title)
-                .font(PremiumStyle.smallFont)
-                .foregroundStyle(PremiumStyle.secondaryInk)
+            HStack(spacing: 5) {
+                Text(title)
+                    .font(PremiumStyle.smallFont)
+                    .foregroundStyle(PremiumStyle.secondaryInk)
+                if let info {
+                    IndicatorInfoButton(info: info)
+                }
+            }
             Text(value)
                 .font(.system(size: 20, weight: .semibold, design: .rounded))
                 .monospacedDigit()
@@ -553,18 +721,25 @@ private struct DetailStatTile: View {
 
 private struct InsightPanel<Content: View>: View {
     let title: String
+    let info: IndicatorInfo?
     let content: Content
 
-    init(title: String, @ViewBuilder content: () -> Content) {
+    init(title: String, info: IndicatorInfo? = nil, @ViewBuilder content: () -> Content) {
         self.title = title
+        self.info = info
         self.content = content()
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(PremiumStyle.titleFont)
-                .foregroundStyle(PremiumStyle.ink)
+            HStack(spacing: 6) {
+                Text(title)
+                    .font(PremiumStyle.titleFont)
+                    .foregroundStyle(PremiumStyle.ink)
+                if let info {
+                    IndicatorInfoButton(info: info)
+                }
+            }
             VStack(spacing: 8) {
                 content
             }
@@ -579,6 +754,16 @@ private struct InsightRow: View {
     let value: String
     let subtitle: String
     let tint: Color
+    let info: IndicatorInfo?
+
+    init(systemImage: String, title: String, value: String, subtitle: String, tint: Color, info: IndicatorInfo? = nil) {
+        self.systemImage = systemImage
+        self.title = title
+        self.value = value
+        self.subtitle = subtitle
+        self.tint = tint
+        self.info = info
+    }
 
     var body: some View {
         HStack(spacing: 10) {
@@ -592,9 +777,14 @@ private struct InsightRow: View {
             .frame(width: 32, height: 32)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundStyle(PremiumStyle.secondaryInk)
+                HStack(spacing: 5) {
+                    Text(title)
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .foregroundStyle(PremiumStyle.secondaryInk)
+                    if let info {
+                        IndicatorInfoButton(info: info)
+                    }
+                }
                 Text(subtitle)
                     .font(.system(size: 10, weight: .medium, design: .rounded))
                     .foregroundStyle(PremiumStyle.secondaryInk.opacity(0.72))
@@ -623,13 +813,25 @@ private struct InsightRow: View {
 private struct CapacityBar: View {
     let title: String
     let percent: Int?
+    let info: IndicatorInfo?
+
+    init(title: String, percent: Int?, info: IndicatorInfo? = nil) {
+        self.title = title
+        self.percent = percent
+        self.info = info
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(title)
-                    .font(PremiumStyle.smallFont)
-                    .foregroundStyle(PremiumStyle.secondaryInk)
+                HStack(spacing: 5) {
+                    Text(title)
+                        .font(PremiumStyle.smallFont)
+                        .foregroundStyle(PremiumStyle.secondaryInk)
+                    if let info {
+                        IndicatorInfoButton(info: info)
+                    }
+                }
                 Spacer()
                 Text(percent.map { "\($0)%" } ?? "--")
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
