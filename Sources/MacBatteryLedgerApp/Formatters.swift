@@ -19,6 +19,12 @@ enum BatteryFormatters {
         return formatter
     }()
 
+    static let dateTime: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, h:mm a"
+        return formatter
+    }()
+
     static func duration(_ interval: TimeInterval) -> String {
         let minutes = max(0, Int(interval / 60))
         if minutes < 60 {
