@@ -435,6 +435,8 @@ private struct CycleDetailView: View {
                         )
                     )
                 }
+
+                CycleCompletionHistory(events: insights.completionEvents)
             }
         }
     }
@@ -557,7 +559,228 @@ private struct HealthDetailView: View {
                         tint: PremiumStyle.green
                     )
                 }
+
+                HealthSampleHistory(samples: samples, currentSnapshot: snapshot)
             }
+        }
+    }
+}
+
+private struct CycleCompletionHistory: View {
+    let events: [CycleCompletionEvent]
+
+    var body: some View {
+        InsightPanel(
+            title: "Cycle Completion History",
+            info: IndicatorInfo(
+                title: "Cycle Completion History",
+                details: [
+                    "A row appears when the system cycle count increases in a recorded session.",
+                    "Battery delta, duration, and power state help explain the usage that surrounded the cycle."
+                ]
+            )
+        ) {
+            if events.isEmpty {
+                EmptyInlineHistory(
+                    systemImage: "calendar.badge.exclamationmark",
+                    message: "No completed cycle changes have been recorded yet."
+                )
+            } else {
+                ForEach(events.prefix(10)) { event in
+                    CycleCompletionRow(event: event)
+                }
+            }
+        }
+    }
+}
+
+private struct CycleCompletionRow: View {
+    let event: CycleCompletionEvent
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(event.tint.opacity(0.12))
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(event.tint)
+                }
+                .frame(width: 32, height: 32)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(event.title)
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(PremiumStyle.ink)
+                    Text(BatteryFormatters.dateTime.string(from: event.date))
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundStyle(PremiumStyle.secondaryInk.opacity(0.75))
+                }
+
+                Spacer(minLength: 8)
+
+                Text(event.sessionKind.title)
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundStyle(event.tint)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(event.tint.opacity(0.12), in: Capsule())
+            }
+
+            HStack(spacing: 8) {
+                HistoryMetadataPill(title: "Window", value: event.windowText)
+                HistoryMetadataPill(title: "Battery", value: event.batteryDeltaText)
+                HistoryMetadataPill(title: "Duration", value: event.durationText)
+            }
+        }
+        .padding(10)
+        .background(PremiumStyle.softPanel, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(PremiumStyle.line, lineWidth: 1)
+        }
+    }
+}
+
+private struct HealthSampleHistory: View {
+    let samples: [BatteryHealthSample]
+    let currentSnapshot: BatterySnapshot?
+
+    private var rows: [HealthHistoryRowModel] {
+        HealthHistoryRowModel.rows(samples: samples, currentSnapshot: currentSnapshot)
+    }
+
+    var body: some View {
+        InsightPanel(
+            title: "Health History",
+            info: IndicatorInfo(
+                title: "Health History",
+                details: [
+                    "Samples are saved when health data changes or when the previous saved reading is stale.",
+                    "Rows show capacity, cycle count, temperature, and health drift from the previous saved reading."
+                ]
+            )
+        ) {
+            if rows.isEmpty {
+                EmptyInlineHistory(
+                    systemImage: "heart.text.square",
+                    message: "Health history will appear after the next readable battery refresh."
+                )
+            } else {
+                ForEach(rows.prefix(10)) { row in
+                    HealthHistoryRow(row: row)
+                }
+            }
+        }
+    }
+}
+
+private struct HealthHistoryRow: View {
+    let row: HealthHistoryRowModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(row.tint.opacity(0.12))
+                    Image(systemName: row.isCurrent ? "dot.radiowaves.left.and.right" : "heart.fill")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(row.tint)
+                }
+                .frame(width: 32, height: 32)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(row.title)
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundStyle(PremiumStyle.ink)
+                        if row.isCurrent {
+                            Text("NOW")
+                                .font(.system(size: 8, weight: .bold, design: .rounded))
+                                .foregroundStyle(row.tint)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(row.tint.opacity(0.12), in: Capsule())
+                        }
+                    }
+                    Text(BatteryFormatters.dateTime.string(from: row.date))
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundStyle(PremiumStyle.secondaryInk.opacity(0.75))
+                }
+
+                Spacer(minLength: 8)
+
+                Text(row.driftText)
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(row.tint)
+            }
+
+            HStack(spacing: 8) {
+                HistoryMetadataPill(title: "Full", value: row.maxCapacityText)
+                HistoryMetadataPill(title: "Cycles", value: row.cycleText)
+                HistoryMetadataPill(title: "Temp", value: row.temperatureText)
+            }
+            HStack(spacing: 8) {
+                HistoryMetadataPill(title: "Design", value: row.designCapacityText)
+                HistoryMetadataPill(title: "Current", value: row.currentCapacityText)
+            }
+        }
+        .padding(10)
+        .background(PremiumStyle.softPanel, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(PremiumStyle.line, lineWidth: 1)
+        }
+    }
+}
+
+private struct HistoryMetadataPill: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.system(size: 9, weight: .medium, design: .rounded))
+                .foregroundStyle(PremiumStyle.secondaryInk.opacity(0.7))
+            Text(value)
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(PremiumStyle.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(PremiumStyle.panel.opacity(0.6), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+    }
+}
+
+private struct EmptyInlineHistory: View {
+    let systemImage: String
+    let message: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(PremiumStyle.secondaryInk)
+                .frame(width: 28, height: 28)
+            Text(message)
+                .font(PremiumStyle.smallFont)
+                .foregroundStyle(PremiumStyle.secondaryInk)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .background(PremiumStyle.softPanel, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(PremiumStyle.line, lineWidth: 1)
         }
     }
 }
@@ -1047,6 +1270,7 @@ private struct CycleInsights {
     let lastCycleEvent: Date?
     let monthlyPace: Double?
     let projectedLimitDate: Date?
+    let completionEvents: [CycleCompletionEvent]
 
     init(snapshot: BatterySnapshot?, sessions: [BatterySession]) {
         count = snapshot?.cycleCount
@@ -1064,6 +1288,9 @@ private struct CycleInsights {
             guard let start = session.startCycleCount, let end = session.endCycleCount else { return false }
             return end > start
         }
+        completionEvents = changedSessions
+            .flatMap(CycleCompletionEvent.events(from:))
+            .sorted { $0.date > $1.date }
         cycleEvents = changedSessions.reduce(0) { total, session in
             guard let start = session.startCycleCount, let end = session.endCycleCount else { return total }
             return total + max(0, end - start)
@@ -1182,6 +1409,60 @@ private struct CycleInsights {
     private struct CycleReading {
         let date: Date
         let count: Int
+    }
+}
+
+private struct CycleCompletionEvent: Identifiable {
+    let id: String
+    let cycleCount: Int
+    let previousCycleCount: Int
+    let date: Date
+    let sessionKind: BatterySessionKind
+    let startPercentage: Int
+    let endPercentage: Int
+    let duration: TimeInterval
+    let windowText: String
+
+    static func events(from session: BatterySession) -> [CycleCompletionEvent] {
+        guard
+            let start = session.startCycleCount,
+            let end = session.endCycleCount,
+            end > start
+        else {
+            return []
+        }
+
+        return ((start + 1)...end).map { completedCount in
+            CycleCompletionEvent(
+                id: "\(session.id.uuidString)-\(completedCount)",
+                cycleCount: completedCount,
+                previousCycleCount: completedCount - 1,
+                date: session.displayEndDate,
+                sessionKind: session.kind,
+                startPercentage: session.startPercentage,
+                endPercentage: session.endPercentage,
+                duration: session.duration,
+                windowText: BatteryFormatters.sessionWindow(session)
+            )
+        }
+    }
+
+    var title: String {
+        "Cycle \(previousCycleCount) -> \(cycleCount)"
+    }
+
+    var batteryDeltaText: String {
+        let delta = endPercentage - startPercentage
+        let prefix = delta > 0 ? "+" : ""
+        return "\(startPercentage)% to \(endPercentage)% (\(prefix)\(delta)%)"
+    }
+
+    var durationText: String {
+        BatteryFormatters.duration(duration)
+    }
+
+    var tint: Color {
+        sessionKind == .charge ? PremiumStyle.green : PremiumStyle.graphite
     }
 }
 
@@ -1304,6 +1585,153 @@ private struct HealthInsights {
         guard let value else { return "--" }
         let ampHours = Double(value) / 1000.0
         return String(format: "%.1f Ah", ampHours)
+    }
+}
+
+private struct HealthHistoryRowModel: Identifiable {
+    let id: String
+    let date: Date
+    let isCurrent: Bool
+    let healthPercent: Int?
+    let cycleCount: Int?
+    let maxCapacity: Int?
+    let designCapacity: Int?
+    let currentCapacity: Int?
+    let temperatureCelsius: Double?
+    let previousHealthPercent: Int?
+
+    static func rows(samples: [BatteryHealthSample], currentSnapshot: BatterySnapshot?) -> [HealthHistoryRowModel] {
+        var records: [HealthRecord] = []
+
+        if let currentSnapshot {
+            records.append(HealthRecord(snapshot: currentSnapshot))
+        }
+
+        for sample in samples {
+            guard !records.contains(where: { $0.matches(sample) }) else { continue }
+            records.append(HealthRecord(sample: sample))
+        }
+
+        let sortedRecords = records.sorted { $0.date > $1.date }
+        return sortedRecords.enumerated().map { index, record in
+            let previousHealth = sortedRecords[(index + 1)...].first { $0.healthPercent != nil }?.healthPercent
+            return HealthHistoryRowModel(record: record, previousHealthPercent: previousHealth)
+        }
+    }
+
+    private init(record: HealthRecord, previousHealthPercent: Int?) {
+        id = record.id
+        date = record.date
+        isCurrent = record.isCurrent
+        healthPercent = record.healthPercent
+        cycleCount = record.cycleCount
+        maxCapacity = record.maxCapacity
+        designCapacity = record.designCapacity
+        currentCapacity = record.currentCapacity
+        temperatureCelsius = record.temperatureCelsius
+        self.previousHealthPercent = previousHealthPercent
+    }
+
+    var title: String {
+        healthPercent.map { "\($0)% capacity health" } ?? "Capacity reading"
+    }
+
+    var driftText: String {
+        guard let healthPercent, let previousHealthPercent else { return "Baseline" }
+        let drift = healthPercent - previousHealthPercent
+        if drift > 0 { return "+\(drift)%" }
+        return "\(drift)%"
+    }
+
+    var maxCapacityText: String {
+        guard let maxCapacity else { return "--" }
+        var text = capacityText(maxCapacity)
+        if let designCapacity, designCapacity > 0 {
+            let percent = Int((Double(maxCapacity) / Double(designCapacity) * 100).rounded())
+            text += " / \(percent)%"
+        }
+        return text
+    }
+
+    var designCapacityText: String {
+        guard let designCapacity else { return "--" }
+        return capacityText(designCapacity)
+    }
+
+    var currentCapacityText: String {
+        guard let currentCapacity else { return "--" }
+        return capacityText(currentCapacity)
+    }
+
+    var cycleText: String {
+        cycleCount.map(String.init) ?? "--"
+    }
+
+    var temperatureText: String {
+        guard let temperatureCelsius else { return "--" }
+        return "\(Int(temperatureCelsius.rounded()))C"
+    }
+
+    var tint: Color {
+        guard let healthPercent else { return PremiumStyle.graphite }
+        switch healthPercent {
+        case 90...:
+            return PremiumStyle.green
+        case 80..<90:
+            return PremiumStyle.amber
+        default:
+            return PremiumStyle.red
+        }
+    }
+
+    private func capacityText(_ value: Int) -> String {
+        let ampHours = Double(value) / 1000.0
+        return String(format: "%.1f Ah", ampHours)
+    }
+
+    private struct HealthRecord {
+        let id: String
+        let date: Date
+        let isCurrent: Bool
+        let cycleCount: Int?
+        let healthPercent: Int?
+        let designCapacity: Int?
+        let maxCapacity: Int?
+        let currentCapacity: Int?
+        let temperatureCelsius: Double?
+
+        init(snapshot: BatterySnapshot) {
+            id = "current-\(snapshot.updatedAt.timeIntervalSince1970)"
+            date = snapshot.updatedAt
+            isCurrent = true
+            cycleCount = snapshot.cycleCount
+            healthPercent = snapshot.healthPercent
+            designCapacity = snapshot.designCapacity
+            maxCapacity = snapshot.maxCapacity
+            currentCapacity = snapshot.currentCapacity
+            temperatureCelsius = snapshot.temperatureCelsius
+        }
+
+        init(sample: BatteryHealthSample) {
+            id = sample.id.uuidString
+            date = sample.date
+            isCurrent = false
+            cycleCount = sample.cycleCount
+            healthPercent = sample.healthPercent
+            designCapacity = sample.designCapacity
+            maxCapacity = sample.maxCapacity
+            currentCapacity = sample.currentCapacity
+            temperatureCelsius = sample.temperatureCelsius
+        }
+
+        func matches(_ sample: BatteryHealthSample) -> Bool {
+            abs(date.timeIntervalSince(sample.date)) < 1
+                && cycleCount == sample.cycleCount
+                && healthPercent == sample.healthPercent
+                && designCapacity == sample.designCapacity
+                && maxCapacity == sample.maxCapacity
+                && currentCapacity == sample.currentCapacity
+        }
     }
 }
 
