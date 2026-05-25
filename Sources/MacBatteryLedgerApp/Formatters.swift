@@ -44,6 +44,21 @@ enum BatteryFormatters {
         return duration(TimeInterval(minutes * 60))
     }
 
+    static func watts(_ value: Double?) -> String {
+        guard let value else { return "--" }
+        return String(format: "%.1f W", value)
+    }
+
+    static func volts(_ value: Double?) -> String {
+        guard let value else { return "--" }
+        return String(format: "%.1f V", value)
+    }
+
+    static func amps(_ value: Double?) -> String {
+        guard let value else { return "--" }
+        return String(format: "%.1f A", value)
+    }
+
     static func sessionWindow(_ session: BatterySession) -> String {
         let startDay = day.string(from: session.startDate)
         let startTime = time.string(from: session.startDate)
