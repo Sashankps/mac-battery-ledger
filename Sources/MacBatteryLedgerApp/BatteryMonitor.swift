@@ -1,4 +1,5 @@
 import Foundation
+import IOKit.ps
 import Observation
 
 @Observable
@@ -6,10 +7,12 @@ final class BatteryMonitor {
     private static let transientStateLimit: TimeInterval = 30
     private static let healthSampleInterval: TimeInterval = 60 * 60
     private static let healthSampleLimit = 720
+    private static let refreshInterval: TimeInterval = 5
 
     private let reader: BatteryReading
     private let store: BatteryHistoryStore
     private var timer: Timer?
+    private var powerNotificationSource: CFRunLoopSource?
 
     private(set) var snapshot: BatterySnapshot?
     private(set) var history: BatteryHistory
@@ -22,16 +25,19 @@ final class BatteryMonitor {
 
     deinit {
         timer?.invalidate()
+        if let powerNotificationSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), powerNotificationSource, .commonModes)
+        }
     }
 
     func start() {
-        guard timer == nil else { return }
-        timer?.invalidate()
+        guard timer == nil, powerNotificationSource == nil else { return }
         refresh()
-        timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+        startPowerSourceNotifications()
+        timer = Timer.scheduledTimer(withTimeInterval: Self.refreshInterval, repeats: true) { [weak self] _ in
             self?.refresh()
         }
-        timer?.tolerance = 6
+        timer?.tolerance = 0.5
     }
 
     func refresh() {
@@ -40,13 +46,42 @@ final class BatteryMonitor {
         fold(nextSnapshot)
     }
 
+    private func startPowerSourceNotifications() {
+        let context = Unmanaged.passUnretained(self).toOpaque()
+        guard let source = IOPSNotificationCreateRunLoopSource({ context in
+            guard let context else { return }
+            let monitor = Unmanaged<BatteryMonitor>.fromOpaque(context).takeUnretainedValue()
+            DispatchQueue.main.async {
+                monitor.refreshAfterPowerSourceChange()
+            }
+        }, context)?.takeRetainedValue() else {
+            return
+        }
+
+        powerNotificationSource = source
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+    }
+
+    private func refreshAfterPowerSourceChange() {
+        refresh()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) { [weak self] in
+            self?.refresh()
+        }
+    }
+
     private func fold(_ snapshot: BatterySnapshot) {
+        let previousHistory = history
+        defer {
+            if history != previousHistory {
+                store.save(history)
+            }
+        }
+
         recordHealthSample(snapshot)
         let nextKind: BatterySessionKind = snapshot.isPluggedIn ? .charge : .discharge
 
         guard var active = history.activeSession else {
             history.activeSession = makeSession(kind: nextKind, from: snapshot)
-            store.save(history)
             return
         }
 
@@ -54,20 +89,17 @@ final class BatteryMonitor {
             active = endedSession(active, at: snapshot)
             if let restored = restoreSessionInterrupted(by: active, matching: nextKind, at: snapshot) {
                 history.activeSession = restored
-                store.save(history)
                 return
             }
 
             appendCompleted(active)
             history.activeSession = makeSession(kind: nextKind, from: snapshot)
-            store.save(history)
             return
         }
 
         active.endPercentage = snapshot.percentage
         active.endCycleCount = snapshot.cycleCount
         history.activeSession = active
-        store.save(history)
     }
 
     private func makeSession(kind: BatterySessionKind, from snapshot: BatterySnapshot) -> BatterySession {
