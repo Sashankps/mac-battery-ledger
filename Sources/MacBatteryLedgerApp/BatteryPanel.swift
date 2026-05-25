@@ -248,6 +248,7 @@ private struct HeroBatteryCard: View {
             HStack(spacing: 10) {
                 MiniStatusPill(title: "State", value: snapshot.powerStateLabel)
                 MiniStatusPill(title: snapshot.isPluggedIn ? "To Full" : "Remaining", value: BatteryFormatters.timeRemaining(minutes: snapshot.timeRemainingMinutes))
+                PowerDetailsButton(snapshot: snapshot)
             }
         }
         .glassCard()
@@ -261,6 +262,181 @@ private struct HeroBatteryCard: View {
             return PremiumStyle.amber
         }
         return PremiumStyle.green
+    }
+}
+
+private struct PowerDetailsButton: View {
+    let snapshot: BatterySnapshot
+    @State private var isPresented = false
+
+    var body: some View {
+        Button {
+            isPresented.toggle()
+        } label: {
+            HStack(spacing: 7) {
+                ZStack {
+                    Circle()
+                        .fill(tint.opacity(0.14))
+                    Image(systemName: "bolt.circle.fill")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(tint)
+                }
+                .frame(width: 22, height: 22)
+
+                Text("Power")
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundStyle(PremiumStyle.ink)
+
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(PremiumStyle.secondaryInk)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 11)
+            .padding(.vertical, 8)
+            .background(PremiumStyle.softPanel, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(tint.opacity(0.28), lineWidth: 1)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Show power draw details")
+        .pointerCursor()
+        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+            PowerDrawPopover(snapshot: snapshot)
+        }
+    }
+
+    private var tint: Color {
+        snapshot.isPluggedIn ? PremiumStyle.green : PremiumStyle.amber
+    }
+}
+
+private struct PowerDrawPopover: View {
+    let snapshot: BatterySnapshot
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            HStack(alignment: .center, spacing: 11) {
+                ZStack {
+                    Circle()
+                        .fill(tint.opacity(0.13))
+                    Image(systemName: "bolt.circle.fill")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(tint)
+                }
+                .frame(width: 38, height: 38)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Power Draw")
+                        .font(PremiumStyle.smallFont)
+                        .foregroundStyle(PremiumStyle.secondaryInk)
+                    Text(BatteryFormatters.watts(snapshot.powerDrawWatts))
+                        .font(.system(size: 29, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(PremiumStyle.ink)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                }
+
+                Spacer(minLength: 8)
+
+                Text(snapshot.powerDrawSource.label)
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundStyle(tint)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(tint.opacity(0.12), in: Capsule())
+            }
+
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 2), spacing: 8) {
+                PowerMetadataPill(title: "Source", value: snapshot.isPluggedIn ? "AC Power" : "Battery")
+                PowerMetadataPill(title: "Adapter", value: adapterText)
+                PowerMetadataPill(title: "Contract", value: adapterContractText)
+                PowerMetadataPill(title: "Battery Flow", value: batteryFlowText)
+            }
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Adapter rating is the charger limit, not the Mac's live draw.")
+                    .font(PremiumStyle.smallFont)
+                    .foregroundStyle(PremiumStyle.secondaryInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Live draw uses macOS power telemetry when available.")
+                    .font(PremiumStyle.smallFont)
+                    .foregroundStyle(PremiumStyle.secondaryInk.opacity(0.82))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(13)
+        .frame(width: 330, alignment: .leading)
+    }
+
+    private var tint: Color {
+        snapshot.isPluggedIn ? PremiumStyle.green : PremiumStyle.amber
+    }
+
+    private var adapterText: String {
+        guard snapshot.isPluggedIn else { return "Not connected" }
+
+        let name = snapshot.adapterName?.isEmpty == false ? snapshot.adapterName! : "USB-C power"
+        if let ratedWatts = snapshot.adapterRatedWatts {
+            return "\(name) / \(ratedWatts) W"
+        }
+        return name
+    }
+
+    private var adapterContractText: String {
+        guard snapshot.isPluggedIn else { return "--" }
+
+        if let voltage = snapshot.adapterVoltage, let current = snapshot.adapterCurrent {
+            return "\(BatteryFormatters.volts(voltage)) x \(BatteryFormatters.amps(current))"
+        }
+
+        if let ratedWatts = snapshot.adapterRatedWatts {
+            return "\(ratedWatts) W rated"
+        }
+
+        return "--"
+    }
+
+    private var batteryFlowText: String {
+        guard let batteryFlowWatts = snapshot.batteryFlowWatts else {
+            return "--"
+        }
+
+        let flow = BatteryFormatters.watts(abs(batteryFlowWatts))
+        if snapshot.isCharging {
+            return "\(flow) in"
+        }
+        if batteryFlowWatts < 0 || !snapshot.isPluggedIn {
+            return "\(flow) out"
+        }
+        return flow
+    }
+}
+
+private struct PowerMetadataPill: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.system(size: 9, weight: .medium, design: .rounded))
+                .foregroundStyle(PremiumStyle.secondaryInk.opacity(0.72))
+            Text(value)
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(PremiumStyle.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.68)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 7)
+        .background(PremiumStyle.softPanel, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
     }
 }
 

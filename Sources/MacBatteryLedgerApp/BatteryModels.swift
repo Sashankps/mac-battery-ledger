@@ -6,6 +6,16 @@ struct BatterySnapshot: Equatable {
     let isCharging: Bool
     let isFullyCharged: Bool
     let timeRemainingMinutes: Int?
+    let powerDrawWatts: Double?
+    let powerDrawSource: PowerDrawSource
+    let batteryFlowWatts: Double?
+    let batteryVoltage: Double?
+    let batteryCurrent: Double?
+    let adapterName: String?
+    let adapterManufacturer: String?
+    let adapterRatedWatts: Int?
+    let adapterVoltage: Double?
+    let adapterCurrent: Double?
     let cycleCount: Int?
     let maximumCapacityPercent: Int?
     let designCapacity: Int?
@@ -59,6 +69,26 @@ struct BatterySnapshot: Equatable {
             return "battery.25percent"
         default:
             return "battery.0percent"
+        }
+    }
+}
+
+enum PowerDrawSource: Equatable {
+    case adapterTelemetry
+    case batteryTelemetry
+    case batteryEstimate
+    case unavailable
+
+    var label: String {
+        switch self {
+        case .adapterTelemetry:
+            return "Adapter input"
+        case .batteryTelemetry:
+            return "Battery output"
+        case .batteryEstimate:
+            return "Battery estimate"
+        case .unavailable:
+            return "Unavailable"
         }
     }
 }

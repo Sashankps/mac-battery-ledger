@@ -14,6 +14,18 @@ The app bundle is created at:
 .build/mac-battery-ledger.app
 ```
 
+To install the Finder-launchable app into Applications:
+
+```sh
+./Scripts/build-app.sh --install
+```
+
+This creates:
+
+```sh
+/Applications/Mac Battery Ledger.app
+```
+
 ## Run during development
 
 ```sh

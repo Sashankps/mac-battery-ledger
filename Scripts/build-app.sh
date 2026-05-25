@@ -3,10 +3,25 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_NAME="mac-battery-ledger"
+DISPLAY_NAME="Mac Battery Ledger"
 BUILD_DIR="$ROOT_DIR/.build/release"
 APP_DIR="$ROOT_DIR/.build/$APP_NAME.app"
+INSTALL_DIR="/Applications/$DISPLAY_NAME.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
+INSTALL_APP=false
+
+case "${1:-}" in
+  "")
+    ;;
+  "--install")
+    INSTALL_APP=true
+    ;;
+  *)
+    echo "Usage: $0 [--install]" >&2
+    exit 64
+    ;;
+esac
 
 swift build -c release --package-path "$ROOT_DIR"
 
@@ -24,11 +39,13 @@ cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
   <key>CFBundleIdentifier</key>
   <string>com.sashi.mac-battery-ledger</string>
   <key>CFBundleName</key>
-  <string>mac-battery-ledger</string>
+  <string>Mac Battery Ledger</string>
   <key>CFBundleDisplayName</key>
-  <string>mac-battery-ledger</string>
+  <string>Mac Battery Ledger</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
+  <key>LSApplicationCategoryType</key>
+  <string>public.app-category.utilities</string>
   <key>CFBundleShortVersionString</key>
   <string>1.0</string>
   <key>CFBundleVersion</key>
@@ -43,4 +60,10 @@ cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
 </plist>
 PLIST
 
-echo "$APP_DIR"
+if [[ "$INSTALL_APP" == true ]]; then
+  rm -rf "$INSTALL_DIR"
+  cp -R "$APP_DIR" "$INSTALL_DIR"
+  echo "$INSTALL_DIR"
+else
+  echo "$APP_DIR"
+fi
