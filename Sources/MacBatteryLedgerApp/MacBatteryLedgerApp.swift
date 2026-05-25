@@ -1,4 +1,5 @@
 import AppKit
+import ServiceManagement
 import SwiftUI
 
 @main
@@ -7,6 +8,7 @@ struct MacBatteryLedgerApp: App {
 
     init() {
         NSApplication.shared.setActivationPolicy(.accessory)
+        configureLaunchAtLogin()
     }
 
     var body: some Scene {
@@ -23,6 +25,17 @@ struct MacBatteryLedgerApp: App {
 
         Settings {
             EmptyView()
+        }
+    }
+
+    private func configureLaunchAtLogin() {
+        guard Bundle.main.bundleURL.pathExtension == "app" else { return }
+        guard SMAppService.mainApp.status != .enabled else { return }
+
+        do {
+            try SMAppService.mainApp.register()
+        } catch {
+            NSLog("mac-battery-ledger: failed to register Login Item: \(error.localizedDescription)")
         }
     }
 }
