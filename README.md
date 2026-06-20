@@ -26,6 +26,36 @@ This creates:
 /Applications/Mac Battery Ledger.app
 ```
 
+## Download a release
+
+Download the latest `Mac-Battery-Ledger-X.Y.Z.zip` from the repository's
+[Releases](https://github.com/Sashankps/mac-battery-ledger/releases) page.
+
+The release is ad-hoc signed, not Apple-notarized. On first launch, macOS may
+require you to Control-click the app, choose **Open**, and confirm.
+
+## Publish a release
+
+1. On `main`, update `VERSION` using the `X.Y.Z` format and commit the change.
+2. Create and push a matching tag from that commit:
+
+   ```sh
+   VERSION="$(tr -d '[:space:]' < VERSION)"
+   git tag "v$VERSION"
+   git push origin "v$VERSION"
+   ```
+
+GitHub Actions builds the app, creates a ZIP archive and SHA-256 checksum, and
+publishes both files in a GitHub Release with generated release notes.
+
+To build the same release archive locally:
+
+```sh
+./Scripts/package-release.sh
+```
+
+The files are created in `dist/`.
+
 ## Run during development
 
 ```sh

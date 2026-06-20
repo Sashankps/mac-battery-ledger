@@ -4,12 +4,25 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_NAME="mac-battery-ledger"
 DISPLAY_NAME="Mac Battery Ledger"
+VERSION_FILE="$ROOT_DIR/VERSION"
 BUILD_DIR="$ROOT_DIR/.build/release"
 APP_DIR="$ROOT_DIR/.build/$APP_NAME.app"
 INSTALL_DIR="/Applications/$DISPLAY_NAME.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 INSTALL_APP=false
+APP_VERSION="${APP_VERSION:-$(tr -d '[:space:]' < "$VERSION_FILE")}"
+BUILD_NUMBER="${BUILD_NUMBER:-1}"
+
+if [[ ! "$APP_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "APP_VERSION must use the X.Y.Z format." >&2
+  exit 64
+fi
+
+if [[ ! "$BUILD_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
+  echo "BUILD_NUMBER must be a positive integer." >&2
+  exit 64
+fi
 
 case "${1:-}" in
   "")
@@ -59,6 +72,9 @@ cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
 </dict>
 </plist>
 PLIST
+
+/usr/bin/plutil -replace CFBundleShortVersionString -string "$APP_VERSION" "$CONTENTS_DIR/Info.plist"
+/usr/bin/plutil -replace CFBundleVersion -string "$BUILD_NUMBER" "$CONTENTS_DIR/Info.plist"
 
 if [[ "$INSTALL_APP" == true ]]; then
   rm -rf "$INSTALL_DIR"
